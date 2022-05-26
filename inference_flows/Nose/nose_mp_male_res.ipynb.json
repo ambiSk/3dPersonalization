@@ -1,0 +1,495 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import cv2\n",
+    "import pandas as pd"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# !pip install opencv-python"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# !pip install imutils"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from PIL import Image, ImageDraw"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from imutils import face_utils\n",
+    "import numpy as np\n",
+    "import argparse\n",
+    "import imutils\n",
+    "import dlib\n",
+    "import cv2\n",
+    "import os\n",
+    "import sys\n",
+    "import matplotlib.pyplot as plt"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# !pip install mediapipe"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import mediapipe as mp"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mp_face_mesh = mp.solutions.face_mesh\n",
+    "mp_face_detection = mp.solutions.face_detection\n",
+    "\n",
+    "\n",
+    "# help(mp_face_mesh.FaceMesh)\n",
+    "\n",
+    "# Initialize MediaPipe Face Mesh.\n",
+    "face_mesh = mp_face_mesh.FaceMesh(\n",
+    "    static_image_mode=True,\n",
+    "    max_num_faces=2,\n",
+    "    min_detection_confidence=0.5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "/nfs_storage/fs-mnt6/mujtaba/3D_vision\r\n"
+     ]
+    }
+   ],
+   "source": [
+    "!pwd"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Prepare DrawingSpec for drawing the face landmarks later.\n",
+    "mp_drawing = mp.solutions.drawing_utils \n",
+    "drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data_dir = '/nfs_storage/fs-mnt6/pranshu/selfie_sticker/selfie_sticker_console/static/Hikemoji3D_female/raw_image'\n",
+    "# data_dir = '/nfs_storage/fs-mnt6/mujtaba/3D_vision/Nose/results/female_v0_out/'\n",
+    "img_files = [data_dir +'/'+filenm for filenm in os.listdir(data_dir)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_detection_bb(detection):\n",
+    "    return (detection.location_data.relative_bounding_box.xmin, detection.location_data.relative_bounding_box.ymin, \n",
+    "detection.location_data.relative_bounding_box.width, detection.location_data.relative_bounding_box.height)\n",
+    "\n",
+    "def face_normalize(point_ind, res_landmark, detection):\n",
+    "    dbb = get_detection_bb(detection)\n",
+    "    bb_tl = (dbb[0], dbb[1])\n",
+    "    bb_wh = (dbb[2], dbb[3])\n",
+    "    pt = (res_landmark[point_ind].x, res_landmark[point_ind].y)\n",
+    "    pt_fn = ((pt[0]-bb_tl[0]) / bb_wh[0] , (pt[1]-bb_tl[1]) / bb_wh[1], res_landmark[point_ind].z)\n",
+    "    return pt_fn"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_points(res_landmark, point_ind, im_shape):\n",
+    "    return (res_landmark[point_ind].x*im_shape[1], res_landmark[point_ind].y*im_shape[0])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_point3(ptinds, res):\n",
+    "    return [(res.landmark[ptind].x, res.landmark[ptind].y, res.landmark[ptind].z) for ptind in ptinds]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_point3_fn(ptinds, res, detection):\n",
+    "    return [face_normalize(ptind, res.landmark, detection) for ptind in ptinds]\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def dist_point_line(p1, p2, p3):\n",
+    "    '''\n",
+    "    ## p1 and p2 giving a line and p3 the third point, fn finds perpendicular distance \n",
+    "    '''\n",
+    "    return  np.linalg.norm(np.cross(p2-p1, p1-p3))/np.linalg.norm(p2-p1)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_dist_2pts(pt1, pt2):\n",
+    "    return np.linalg.norm(np.array(pt1) - np.array(pt2))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(0, 0, -1)"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "def get_normal_vec_plane(p1, p2, p3):\n",
+    "    # These two vectors are in the plane\n",
+    "    v1 = p3 - p1\n",
+    "    v2 = p2 - p1\n",
+    "    # the cross product is a vector normal to the plane\n",
+    "    cp = np.cross(v1, v2)\n",
+    "    a, b, c = cp\n",
+    "    return a,b,c\n",
+    "    \n",
+    "p1 = np.array([1, 0, 0])\n",
+    "p2 = np.array([0, 1, 0])\n",
+    "p3 = np.array([0, 0, 0])\n",
+    "get_normal_vec_plane(p1, p2, p3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_cosine_two_vecs(vector_1, vector_2):    \n",
+    "    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)\n",
+    "    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)\n",
+    "    dot_product = np.dot(unit_vector_1, unit_vector_2)\n",
+    "    angle = np.arccos(dot_product)\n",
+    "    return angle\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def get_pt_circle(p1):\n",
+    "    return (p1[0]-1, p1[1]-1, p1[0]+1, p1[1]+1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def draw_pt_image(image, pt, fill='blue'):\n",
+    "    im = Image.fromarray(image)\n",
+    "    draw = ImageDraw.Draw(im)\n",
+    "    draw.ellipse(get_pt_circle(pt) , fill = fill, outline =fill)\n",
+    "    return im"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def draw_ptind_image(image, ptinds, fill='blue'):\n",
+    "    \n",
+    "    im = Image.fromarray(image)\n",
+    "    draw = ImageDraw.Draw(im)\n",
+    "    for p in ptinds:\n",
+    "        pt = get_points(res.landmark, p, image.shape)\n",
+    "        draw.ellipse(get_pt_circle(pt) , fill = fill, outline =fill)\n",
+    "    return im"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "3b359ca4-6\n",
+      "0.2849929973388394 0.06534026633020065 0.18767321794190442\n",
+      "3afd6c5e-9\n",
+      "0.2836545384041785 0.05002495585132797 0.16956377570976186\n",
+      "3aa31e41-9\n",
+      "0.27941250665301304 0.03689054273435578 0.18397075731921086\n",
+      "3a9c9390-d\n",
+      "0.2833373286429721 0.03547270042502021 0.204710107935683\n",
+      "3c24725f-2\n",
+      "0.3145614274759099 0.050246720536640754 0.19015047642975058\n",
+      "3c1bd401-d\n",
+      "0.2609639605011808 0.0330506168677172 0.19268435396523906\n",
+      "3bb10bf2-6\n",
+      "0.28417563262328616 0.052983323555292644 0.1966935084554512\n",
+      "3c13057d-9\n",
+      "0.28933378894984196 0.05294143285511185 0.1947895727271768\n",
+      "3a9dcb78-0\n",
+      "0.27138317043443255 0.04648272682613711 0.20197771205133377\n",
+      "3c1e3d13-f\n",
+      "0.28491731809677273 0.02519835026005887 0.19251532756498682\n",
+      "3aa12375-5\n",
+      "0.24415322043053506 0.034755602090669 0.17827880295395018\n",
+      "3c0a8f39-f\n",
+      "0.312598903941071 0.046210363422014754 0.21234043347125856\n",
+      "3bb7b4f0-e\n",
+      "0.294135455773679 0.06865046117949265 0.20100517518158645\n",
+      "3aadf3ef-b\n",
+      "0.26478179677230634 0.04069214759269508 0.18366765483670724\n",
+      "3c3968fd-2\n",
+      "0.2678173106311849 0.04579199823649967 0.19051045073068765\n",
+      "3b9f0495-4\n",
+      "0.2812875489183781 0.07509241167371732 0.1962177757446625\n",
+      "3bf4babb-5\n"
+     ]
+    }
+   ],
+   "source": [
+    "nbls = []\n",
+    "pas = []\n",
+    "bws = []\n",
+    "out_data = []\n",
+    "for img_path in img_files:\n",
+    "    print(img_path.split('/')[-1][:10],)\n",
+    "    image = cv2.imread(img_path)\n",
+    "    if type(image)==type(None):\n",
+    "        print('couldnt read image.. exiting..', img_path)\n",
+    "        sys.exit()\n",
+    "\n",
+    "    face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)\n",
+    "    results_fd = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))\n",
+    "    detection = results_fd.detections[0]\n",
+    "\n",
+    "    face_mesh = mp_face_mesh.FaceMesh(\n",
+    "        static_image_mode=True,\n",
+    "        max_num_faces=2,\n",
+    "        min_detection_confidence=0.5)\n",
+    "    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))\n",
+    "    res = results.multi_face_landmarks[0]\n",
+    "    \n",
+    "    nose_bot_corner_pts = get_point3_fn([48, 331], res, detection)\n",
+    "    nose_bot_len = get_dist_2pts(nose_bot_corner_pts[0], nose_bot_corner_pts[1])\n",
+    "    nbls.append(nose_bot_len)\n",
+    "    \n",
+    "#     low_pts = get_point3_fn([48,331,1], res, detection)\n",
+    "#     v1, v2, v3 = np.array(low_pts[0]), np.array(low_pts[1]), np.array(low_pts[2])\n",
+    "#     pointy_angle = get_cosine_two_vecs(v1-v3, v2-v3)\n",
+    "    bot_mid = (np.array(nose_bot_corner_pts[0])+ np.array(nose_bot_corner_pts[1]))[:2]/2.\n",
+    "    low_pt = get_point3_fn([1], res, detection)\n",
+    "#     low_pt = np.array(low_pt[0][:2])\n",
+    "#     pointy_angle = get_dist_2pts(bot_mid, low_pt)\n",
+    "    pointy_angle = dist_point_line(np.array(nose_bot_corner_pts[0]), np.array(nose_bot_corner_pts[1]), np.array(low_pt))\n",
+    "    pas.append(pointy_angle)\n",
+    "    \n",
+    "    bridge_pts = [(114, 343), (189, 413), (128, 357)]\n",
+    "    bridge_pts_fn = [get_point3_fn(pt, res, detection) for pt in bridge_pts]\n",
+    "    bridge_pts_dists = [get_dist_2pts(pt[0], pt[1]) for pt in bridge_pts_fn]\n",
+    "    bridge_width_mean = np.mean(bridge_pts_dists)\n",
+    "    bws.append(bridge_width_mean)\n",
+    "    \n",
+    "    \n",
+    "#     print(get_point3([48, 331], res=res))\n",
+    "#     print(image.shape)\n",
+    "#     plt.imshow(image)\n",
+    "\n",
+    "    print( nose_bot_len,pointy_angle, bridge_width_mean)\n",
+    "    Nose_Bridge_Up_Dn = 82.6\n",
+    "    Nose_Bridge_Fr_Bk = 31.9\n",
+    "    M_Nose_Fr = 26.3\n",
+    "    R_Nose_Con_Out = -20 + (57+20) * (nose_bot_len-0.22) / (0.32 - 0.22)\n",
+    "    L_Nose_Con_Out = R_Nose_Con_Out\n",
+    "    L_Nose_Con_Up = 32.7 + (95.6 - 32.7)*(pointy_angle - 0.01)/(0.08-0.01)\n",
+    "    R_Nose_Con_Up = L_Nose_Con_Up\n",
+    "    Nose_Bridge_Side_Scale = 36.3 + (bridge_width_mean - 0.14)*(86.2 - 36.3)/(0.23-0.14)\n",
+    "    \n",
+    "    out_data.append([img_path.split('/')[-1], Nose_Bridge_Up_Dn, Nose_Bridge_Fr_Bk, M_Nose_Fr, R_Nose_Con_Out, L_Nose_Con_Out, L_Nose_Con_Up, R_Nose_Con_Up, Nose_Bridge_Side_Scale])\n",
+    "\n",
+    "\n",
+    "    \n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "len(out_data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "blend_shapes_params = pd.DataFrame(out_data, columns=['img_name','Nose_Bridge_Up_Dn', 'Nose_Bridge_Fr_Bk', 'M_Nose_Fr', 'R_Nose_Con_Out', 'L_Nose_Con_Out', 'L_Nose_Con_Up', 'R_Nose_Con_Up', 'Nose_Bridge_Side_Scale' ])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "blend_shapes_params.to_csv('blend_shapes_v1.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python [conda env:root] *",
+   "language": "python",
+   "name": "conda-root-py"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
