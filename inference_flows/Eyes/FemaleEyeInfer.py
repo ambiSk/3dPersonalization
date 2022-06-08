@@ -20,7 +20,7 @@ import sys
 # json_dir = "../Male_output_json/"
 MODEL_PATH = "./Trained_models/Eyes/Female/renet18_female_eyes.pkl"
 # TASK_OUTPUT_MAPPER = 'Hikemoji3D/Assets/PythonScripts/Trained_models/Eyes/Female/task_output_mapper.pkl'
-FACE_LANDMARKS_FILE = "./Trained_models/shape_predictor_68_face_landmarks.dat"
+FACE_LANDMARKS_FILE = "/home/sharathchandra/shape_predictor_68_face_landmarks.dat"
 
 def ModelInfer(image_dir, MODEL_PATH):
     learn = load_learner(MODEL_PATH)

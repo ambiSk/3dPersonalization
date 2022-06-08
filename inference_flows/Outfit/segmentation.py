@@ -198,40 +198,21 @@ def get_segmentation_output(image_path):
     return masked_image
 
 
-def run_inference(images_path, csv_file=None, images_output_path=None):
-
-    if os.path.isfile(images_path):
-        img_paths = [images_path, ]
-    else:
-        img_paths = [os.path.join(images_path, img_path) for img_path in os.listdir(images_path)]
-
-    if csv_file is not None:
-        os.makedirs(os.path.join(csv_file.split("/")[-1]), exist_ok=True)
-        out_file = open(csv_file, "w")
-        csvwriter = csv.writer(out_file)
-        csvwriter.writerow(["", "image_name", "outfit_color"])
+def run_inference(image_path, images_output_path=None):
+    if not (image_path.endswith("png") or image_path.endswith("jpg") or image_path.endswith("jpeg")):
+        return 
 
     if images_output_path is not None:
         os.makedirs(images_output_path, exist_ok=True)
+    
+    masked_image = get_segmentation_output(image_path)
+    
+    if images_output_path:
+        cv2.imwrite(os.path.join(images_output_path, image_path.split("/")[-1]), cv2.cvtColor(masked_image, cv2.COLOR_RGB2BGR))
 
-    for (i, src_) in enumerate(img_paths):
-        if not (src_.endswith("png") or src_.endswith("jpg") or src_.endswith("jpeg")):
-            continue
+    dominant_color = color_extractor_obj.get_dominant_color_hex(masked_image)
 
-        masked_image = get_segmentation_output(src_)
-
-        if images_output_path:
-            cv2.imwrite(os.path.join(images_output_path, src_.split("/")[-1]), cv2.cvtColor(masked_image, cv2.COLOR_RGB2BGR))
-
-        dominant_color = color_extractor_obj.get_dominant_color_hex(masked_image)
-
-        if not dominant_color:
-            dominant_color = "default"
-
-        if csv_file is not None:
-            csvwriter.writerow([i, src_.split("/")[-1], dominant_color])
-
-        print("Done", src_, "Dominant Color", dominant_color)
-
-    if csv_file:
-        out_file.close()
+    if not dominant_color:
+        dominant_color = "default"
+    
+    return dict(outfit_color=dominant_color)

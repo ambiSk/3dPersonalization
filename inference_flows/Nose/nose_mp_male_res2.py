@@ -39,7 +39,6 @@ mp_face_detection = mp.solutions.face_detection
 
 # In[ ]:
 
-components = pd.read_csv('./inference_flows/Nose/compresults_male.csv')
 with open('./inference_flows/Nose/male_external_presets.presets_from_name.json') as f:
     presets_data = json.load(f)
 
@@ -276,48 +275,33 @@ def get_blend_params_image(image):
 
 
 
-def get_blend_params(data_dir, preset_mix=0.2):
-    global components
-    components = pd.read_csv('./inference_flows/Nose/compresults_male.csv')
+def get_blend_params(img_path, preset_mix=0.2):
 
-    img_files = [data_dir +'/'+filenm for filenm in os.listdir(data_dir)]
-
-    out_data = []
+    if not (img_path.endswith("png") or img_path.endswith("jpg") or img_path.endswith("jpeg")):
+        return 
     
-    res_dict = {}
-
-    for img_path in img_files:
-#         print(img_path.split('/')[-1],)
-        if not (img_path.endswith("png") or img_path.endswith("jpg") or img_path.endswith("jpeg")):
-            continue
-        image = cv2.imread(img_path)
-        if type(image)==type(None):
-            print('couldnt read image.. exiting..', img_path)
-            sys.exit()
-        img_blendshapes = get_blend_params_image(image)
-        img_name = img_path.split('/')[-1]
-        bs_names = ['Nose_Bridge_Up_Dn', 'Nose_Bridge_Fr_Bk', 'M_Nose_Fr', 'R_Nose_Con_Out', 'L_Nose_Con_Out', 'L_Nose_Con_Up', 'R_Nose_Con_Up', 'Nose_Bridge_Side_Scale', 'M_Nose_Up', 'Nostril_Curvature', 'Nosebridge_Bump_In_Out']
-        img_bs_dict = dict(zip(bs_names, img_blendshapes))
-        img_nose_cls = 'MaleNoseAverage' # components.loc[components.image_name==img_name]['Nose'].values[0]
-        if str(img_nose_cls)=='nan':
-            img_nose_cls ='MaleNoseAverage'
-        preset_bs = nose_blendshapes[img_nose_cls]
-        img_bs_merge={}
-        for key in set(preset_bs.keys()).union(set(img_bs_dict.keys())):
-            if key in preset_bs and key in img_bs_dict:
-                img_bs_merge[key] = preset_mix * preset_bs[key] + (1 - preset_mix) * img_bs_dict[key]
-            elif key in preset_bs:
-                img_bs_merge[key] = preset_bs[key]
-            else:
-                img_bs_merge[key] = img_bs_dict[key]
-        res_dict[img_name] = img_bs_merge
-#         Nose_Bridge_Up_Dn, Nose_Bridge_Fr_Bk, M_Nose_Fr, R_Nose_Con_Out, L_Nose_Con_Out, L_Nose_Con_Up, R_Nose_Con_Up, Nose_Bridge_Side_Scale, M_Nose_Up, Nostril_Curvature, Nosebridge_Bump_In_Out = get_blend_params_image(image)
-#         out_data.append([img_name, Nose_Bridge_Up_Dn, Nose_Bridge_Fr_Bk, M_Nose_Fr, R_Nose_Con_Out, L_Nose_Con_Out, L_Nose_Con_Up, R_Nose_Con_Up, Nose_Bridge_Side_Scale, M_Nose_Up, Nostril_Curvature, Nosebridge_Bump_In_Out])
-
-    blend_shapes_params = pd.DataFrame.from_dict(res_dict, orient='index').reset_index()
-    blend_shapes_params = blend_shapes_params.rename(columns={'index':'image_name'})
-    return blend_shapes_params
-
+    image = cv2.imread(img_path)
+    if type(image)==type(None):
+        print('couldnt read image.. exiting..', img_path)
+        sys.exit()
+    img_blendshapes = get_blend_params_image(image)
+    img_name = img_path.split('/')[-1]
+    bs_names = ['Nose_Bridge_Up_Dn', 'Nose_Bridge_Fr_Bk', 'M_Nose_Fr', 'R_Nose_Con_Out', 'L_Nose_Con_Out', 'L_Nose_Con_Up', 'R_Nose_Con_Up', 'Nose_Bridge_Side_Scale', 'M_Nose_Up', 'Nostril_Curvature', 'Nosebridge_Bump_In_Out']
+    img_bs_dict = dict(zip(bs_names, img_blendshapes))
+    img_nose_cls = 'MaleNoseAverage' # components.loc[components.image_name==img_name]['Nose'].values[0]
+    if str(img_nose_cls)=='nan':
+        img_nose_cls ='MaleNoseAverage'
+    preset_bs = nose_blendshapes[img_nose_cls]
+    img_bs_merge={}
+    for key in set(preset_bs.keys()).union(set(img_bs_dict.keys())):
+        if key in preset_bs and key in img_bs_dict:
+            img_bs_merge[key] = preset_mix * preset_bs[key] + (1 - preset_mix) * img_bs_dict[key]
+        elif key in preset_bs:
+            img_bs_merge[key] = preset_bs[key]
+        else:
+            img_bs_merge[key] = img_bs_dict[key]
+    
+    return img_bs_merge
 
 
 

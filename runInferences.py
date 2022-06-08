@@ -31,14 +31,14 @@ import inference_flows.Outfit.color_extractor_v2 as color_extractor_v2
 from inference_flows import Hikemoji2D
 
 
-arguments = argparse.ArgumentParser()
-arguments.add_argument('--gender', type=str, default='male')
-arguments.add_argument('--input_dir', type=str, default="./input_images/")
-arguments.add_argument('--inference_2d', type=str, default="no")
-args = arguments.parse_args()
-gender = args.gender
-inference_2d = args.inference_2d
-input_images_path = args.input_dir
+# arguments = argparse.ArgumentParser()
+# arguments.add_argument('--gender', type=str, default='male')
+# arguments.add_argument('--input_image', type=str)
+# arguments.add_argument('--inference_2d', type=str, default="no")
+# args = arguments.parse_args()
+# gender = args.gender
+# inference_2d = args.inference_2d
+# input_image = args.input_image
 inference_results_path = "./input_files/" + gender
 
 
@@ -69,50 +69,66 @@ def read_data(path):
 
 
 
-def run_inferences():
+def run_inferences(input_image, inference_2d, gender):
     if inference_2d == 'yes':
-        filepath = os.path.dirname(os.path.abspath(__file__))
+        
         if gender == 'male':
-            Hikemoji2D.run_inference(input_images_path, os.path.join(filepath, "component_values_male.csv"), 'male')
-            shutil.copy(os.path.join(filepath, "component_values_male.csv"),
-                        os.path.join(filepath, "inference_flows/Nose/compresults_male.csv"))
+            component_values = Hikemoji2D.run_inference(input_image, 'male')
         else:
-            Hikemoji2D.run_inference(input_images_path, os.path.join(filepath, "component_values_female.csv"), 'male')
-            shutil.copy(os.path.join(filepath, "component_values_female.csv"),
-                        os.path.join(filepath, "inference_flows/Nose/compresults_female.csv"))
+            component_values = Hikemoji2D.run_inference(input_image, 'female')
 
     if gender == 'male':
-        cheek_chubbiness.run_inference(input_images_path,os.path.join(inference_results_path,'cheek_chubbiness_results.csv'),'m')
+        cc_v3 = cheek_chubbiness.run_inference(input_image ,'m')
         #lips_df = malelipsinference.get_df_for_images_in_path(Path(input_images_path))
         #Eyes_df = MaleEyesinference.MaleEyeInfer(input_images_path)
-        nose_params = malenoseinference.get_blend_params(input_images_path)
-        face_shape_df = face_shape.main(input_images_path,'/home/sharathchandra/faceshape_trial_male_v2_2_1_xg_faceangles.pkl')
-        malelipsinference_v2.run_inference(input_images_path, os.path.join(inference_results_path, 'lips_personalisation_v2_results.csv'), 'm')
-        malelipsinference_v3.run_inference(input_images_path, os.path.join(inference_results_path, 'lips_personalisation_v3_results.csv'), 'm')
+        nose_params = malenoseinference.get_blend_params(input_image)
+        faceShape = face_shape.main(input_image,'./Trained_models/faceshape_trial_male_v2_2_1_xg_faceangles.pkl')
+        lipsV2 = malelipsinference_v2.run_inference(input_image, 'm')
+        lipsV3 = malelipsinference_v3.run_inference(input_image, 'm')
     else:
-        cheek_chubbiness.run_inference(input_images_path,os.path.join(inference_results_path,'cheek_chubbiness_results.csv'),'f')
+        cc_v3 = cheek_chubbiness.run_inference(input_image, 'f')
         #lips_df = femalelipsinference.get_df_for_images_in_path(Path(input_images_path))
         #Eyes_df = FemaleEyesinference.FemaleEyeInfer(input_images_path)
-        nose_params = femalenoseinference.get_nose_params(input_images_path)
-        face_shape_df = face_shape_female.main(input_images_path,'/home/sharathchandra/faceshape_trial_female_v1.3_xg_faceangles.pkl')
-        femalelipsinference_v2.run_inference(input_images_path, os.path.join(inference_results_path, 'lips_personalisation_v2_results.csv'), 'f')
-        femalelipsinference_v3.run_inference(input_images_path, os.path.join(inference_results_path, 'lips_personalisation_v3_results.csv'), 'f')
+        nose_params = femalenoseinference.get_nose_params(input_image, component_values)
+        faceShape = face_shape_female.main(input_image,'./Trained_models/faceshape_trial_female_v1.3_xg_faceangles.pkl')
+        lipsV2 = femalelipsinference_v2.run_inference(input_image, 'f')
+        lipsV3 = femalelipsinference_v3.run_inference(input_image, 'f')
 
 
 
-    cheek_lines.run_inference(input_images_path,os.path.join(inference_results_path,'cheek_lines_results.csv'))
+    cheeklines = cheek_lines.run_inference(input_image)
 
-    cheek_dimples.run_inference(input_images_path,os.path.join(inference_results_path,'cheek_dimples_results.csv'))
+    dimples = cheek_dimples.run_inference(input_image)
     
     #Eyes_df.to_csv(os.path.join(inference_results_path,'Eyes_results22nd.csv'))
     
-    nose_params.to_csv(os.path.join(inference_results_path,'male_nose_results.csv'))
+    # nose_params.to_csv(os.path.join(inference_results_path,'male_nose_results.csv'))
     
-    face_shape_df.to_csv(os.path.join(inference_results_path,'face_shape_results.csv'))
+    # face_shape_df.to_csv(os.path.join(inference_results_path,'face_shape_results.csv'))
 
     #lips_df.to_csv(os.path.join(inference_results_path,'lips_results.csv'))
-    outfit_segmentation.run_inference(input_images_path,os.path.join(inference_results_path,'outfit_color_results.csv'))
-    color_extractor_v2.run_inference(input_images_path,os.path.join(inference_results_path,'lip_color_results.csv'))
+    dominant_color = outfit_segmentation.run_inference(input_image)
+
+    lip_color = color_extractor_v2.run_inference(input_image)
+
+    out3d = {**cc_v3, **nose_params, **nose_params, **faceShape, **lipsV2, **lipsV3, **cheeklines, **dimples, **dominant_color, **lip_color}
+    
+
+    out3d['R_Cheek_Out'] = out3d['R_Cheek_Out_S'] + 0.65*out3d['R_Cheek_Out'] 
+    out3d['R_Cheek_Up'] = out3d['R_Cheek_Up_S'] + 0.65*out3d['R_Cheek_Up']
+
+    out3d['L_Cheek_Out'] = out3d['L_Cheek_Out_S'] + 0.65*out3d['L_Cheek_Out'] 
+    out3d['L_Cheek_Up'] = out3d['L_Cheek_Up_S'] + 0.65*out3d['L_Cheek_Up']
+
+    del out3d['R_Cheek_Out_S']
+    del out3d['R_Cheek_Up_S']
+    del out3d['L_Cheek_Out_S']
+    del out3d['L_Cheek_Up_S']
+
+    if inference_2d == 'yes':
+        return component_values, out3d
+
+    return None, out3d
 
 
 
@@ -123,10 +139,19 @@ def get_2d_output():
 
 
 if __name__ == "__main__":
+    arguments = argparse.ArgumentParser()
+    arguments.add_argument('--gender', type=str, default='male')
+    arguments.add_argument('--input_image', type=str)
+    arguments.add_argument('--inference_2d', type=str, default="no")
+    args = arguments.parse_args()
+    gender = args.gender
+    inference_2d = args.inference_2d
+    input_image = args.input_image
+
     #get_2d_output()
-    run_inferences()
-    final_df = read_data(inference_results_path)
-    final_df.to_csv('results.csv')
+    _, out3d = run_inferences(input_image, inference_2d, gender)
+    # final_df = read_data(inference_results_path)
+    json.dumps(out3d)
 
 
 

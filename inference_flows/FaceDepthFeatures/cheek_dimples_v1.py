@@ -63,41 +63,16 @@ if not os.path.exists(model_path):
 learn = load_learner(model_path)
 
 
-def run_inference(images_path, csv_file=None):
-    tmp_path = "/tmp/tmp-dir-infer"
+def run_inference(image_path):
+    tmp_path = "/tmp/dimplesV1"
     shutil.rmtree(tmp_path, ignore_errors=True)
+    if not (image_path.endswith("png") or image_path.endswith("jpg") or image_path.endswith("jpeg")):
+        return
     os.mkdir(tmp_path)
-
-    if os.path.isfile(images_path):
-        img_paths = [images_path, ]
-    else:
-        img_paths = [os.path.join(images_path, img_path) for img_path in os.listdir(images_path)]
-
-    if csv_file is not None:
-        os.makedirs(os.path.join(csv_file.split("/")[-1]), exist_ok=True)
-        out_file = open(csv_file, "w")
-        csvwriter = csv.writer(out_file)
-        csvwriter.writerow(["image_name", "cheekdimples"])
-
-    for src_ in img_paths:
-        if not (src_.endswith("png") or src_.endswith("jpg") or src_.endswith("jpeg")):
-            continue
-        tmp_dest = os.path.join(tmp_path, src_.split("/")[-1])
-
-        crop_image_obj.get_cropped_image(src_, tmp_dest)
-        pred = learn.predict(tmp_dest)
-
-        if pred[2].numpy()[0] > 0.75:
-            pred = True
-        else:
-            pred = False
-
-        if csv_file is not None:
-            csvwriter.writerow([src_.split("/")[-1], str(pred)])
-
-        print("Done", src_)
-
-    if csv_file:
-        out_file.close()
-
+    tmp_dest = os.path.join(tmp_path, image_path.split("/")[-1])
+    crop_image_obj.get_cropped_image(src_, tmp_dest)
+    pred = learn.predict(tmp_dest)
     shutil.rmtree(tmp_path, ignore_errors=True)
+    if pred[2].numpy()[0] > 0.75:
+        return dict(cheekdimples=True)
+    return dict(cheekdimples=False)

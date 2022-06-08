@@ -270,114 +270,76 @@ def get_best_preset_face_shape(face_points_shape):
 def find_dist(p1,p2):
     return ((p2[1]-p1[1])**2 + (p2[0]-p1[0])**2)
 
-def main(images_path,model_path):
-    print(images_path,model_path)
+def main(image_path,model_path):
+    
     loaded_model = pickle.load(open(model_path, 'rb'))
-    real_image_dir = images_path + '*'
-    image_nm=[]
-    fp=[]
-    image_name_list=[]
-    Side_Face=[]
-    cheekup=[]
-    jawout=[]
-    cheekout=[]
-    jawup=[]
-    chin=[]
-    jawthick=[]
-    hup=[]
-    hfr=[]
-    ckup=[]
-    for image_path in glob.glob(real_image_dir):
-        try:
-            print(image_path)
-            im = cv2.imread(image_path)
-            image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-            image = correct_pose(image)
-            if image is None:
-                continue
-            hull_image,c,facepoints = find_hull_im(image)
-            image_face_width_height_ratio = find_ratio(facepoints)
-#             if(image_face_width_height_ratio < 1):
-#                 image_face_width_height_ratio = (1-image_face_width_height_ratio)*250
-#             elif(image_face_width_height_ratio > 1):
-#                 image_face_width_height_ratio = (image_face_width_height_ratio-1)*-200
-#                 plt.imshow(image)
-#                 plt.show()
-#             else:
-#                 image_face_width_height_ratio=0
-#             print(image_face_width_height_ratio)
-            if(image_face_width_height_ratio < 1.1):
-                image_face_width_height_ratio = (image_face_width_height_ratio-1)*-100
-            elif(image_face_width_height_ratio > 1.1):
-                image_face_width_height_ratio = (image_face_width_height_ratio-1)*100
-        #         plt.imshow(image)
-        #         plt.show()
-            else:
-                image_face_width_height_ratio=0
-            print(image_face_width_height_ratio)
+    try:
+        
+        im = cv2.imread(image_path)
+        image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        image = correct_pose(image)
+        if image is None:
+            raise TypeError("Image became None")
+        hull_image,c,facepoints = find_hull_im(image)
+        image_face_width_height_ratio = find_ratio(facepoints)
+        
+        if(image_face_width_height_ratio < 1.1):
+            image_face_width_height_ratio = (image_face_width_height_ratio-1)*-100
+        elif(image_face_width_height_ratio > 1.1):
+            image_face_width_height_ratio = (image_face_width_height_ratio-1)*100
             
-            xh=[]
-            yh=[]
-            for i in range(17):
-                xh.append(int(facepoints.part(i).x))
-                yh.append(int(facepoints.part(i).y))
-            xh = np.asarray(xh)
-            yh = np.asarray(yh)
-            xh = normalize_points(xh)
-            yh = normalize_points(yh)
-            dist = find_dist([xh[4],yh[4]],[xh[12],yh[12]])
+        else:
+            image_face_width_height_ratio=0
+            
+        xh=[]
+        yh=[]
+        for i in range(17):
+            xh.append(int(facepoints.part(i).x))
+            yh.append(int(facepoints.part(i).y))
+        xh = np.asarray(xh)
+        yh = np.asarray(yh)
+        xh = normalize_points(xh)
+        yh = normalize_points(yh)
+        dist = find_dist([xh[4],yh[4]],[xh[12],yh[12]])
+        
+        OldMax=1
+        OldMin= 0.4 
+        NewMax=50
+        NewMin=-100
+        OldRange = (OldMax - OldMin)  
+        NewRange = (NewMax - NewMin)  
+        NewValue = round((((dist - OldMin) * NewRange) / OldRange) + NewMin,2)
 
-            print('dist: ',dist)
-            #interpolate dist in range of -100 to 50 - 0.4-1
-            #0.4 -- > -100
-            #1   -- >   50
-            OldMax=1
-            OldMin= 0.4 
-            NewMax=50
-            NewMin=-100
-            OldRange = (OldMax - OldMin)  
-            NewRange = (NewMax - NewMin)  
-            NewValue = round((((dist - OldMin) * NewRange) / OldRange) + NewMin,2)
+        anglelist = get_best_preset_face_shape(facepoints)
+        fp=[]
+        for i in range(3,12):
+            fp.append(anglelist[i])
+            
+        preds = loaded_model.predict(np.array(fp).reshape(1, -1))[0]
+        return {'Side_Face':round(image_face_width_height_ratio,2),
+        'L_Cheek_Up_S':round(preds[1],2),'R_Cheek_Up_S':round(preds[1],2),
+        'L_Cheek_Out_S':round(preds[0],2),'R_Cheek_Out_S':round(preds[0],2),
+        'L_Jaw_Up':round(preds[3],2),'R_Jaw_Up':round(preds[3],2),
+        'L_Jaw_Out':round(preds[2],2),'R_Jaw_Out':round(preds[2],2),
+        'M_Chin_Up':round(preds[4],2),
+        'Jaw_Back_Thick':NewValue}
+        
+    except Exception as e:
+        print(e)
+        return {'Side_Face':0,
+        'L_Cheek_Up_S':0,'R_Cheek_Up_S':0,
+        'L_Cheek_Out_S':0,'R_Cheek_Out_S':0,
+        'L_Jaw_Up':0,'R_Jaw_Up':0,
+        'L_Jaw_Out':0,'R_Jaw_Out':0,
+        'M_Chin_Up':0,
+        'Jaw_Back_Thick':0}
 
-            anglelist = get_best_preset_face_shape(facepoints)
-            fp=[]
-            for i in range(3,12):
-                fp.append(anglelist[i])
-            print('fp is : ' , fp)
-        #     preds = loaded_model.predict(np.array(coeff).reshape(1, -1))[0]
-            preds = loaded_model.predict(np.array(fp).reshape(1, -1))[0]
-            print(preds)
-            #   Side_Face(max)  L_Cheek_Up  L_Cheek_Out L_Jaw_Up    L_Jaw_Out
-            image_name_list.append(image_path.split('/')[-1])
-            Side_Face.append(round(image_face_width_height_ratio,2))#preds[0])
-            cheekup.append(round(preds[1],2))
-            jawout.append(round(preds[2],2))
-            cheekout.append(round(preds[0],2))
-            jawup.append(round(preds[3],2))
-            chin.append(round(preds[4],2))
-            jawthick.append(NewValue)
-        except:
-            print('skipping')
-            image_name_list.append(image_path.split('/')[-1])
-            Side_Face.append(0)#preds[0])
-            cheekup.append(0)
-            jawout.append(0)
-            cheekout.append(0)
-            jawup.append(0)
-            chin.append(0)
-            jawthick.append(0)
-    df = pd.DataFrame({'image_name':image_name_list,'Side_Face':Side_Face,'L_Cheek_Up_S':cheekup,'R_Cheek_Up_S':cheekup,'L_Cheek_Out_S':cheekout,'R_Cheek_Out_S':cheekout,'L_Jaw_Up':jawup,'R_Jaw_Up':jawup,'L_Jaw_Out':jawout,'R_Jaw_Out':jawout,'M_Chin_Up':chin,'Jaw_Back_Thick':jawthick})
-    
-#     df1 = df.drop(['Facial_BS.Head_Fr_Bk','Facial_BS.Head_Up','Facial_BS.L_Cheekbone_Out','Facial_BS.R_Cheekbone_Out'],axis=1)
-    df.to_csv('temp.csv')
-    
-    return df
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Enter the images path and model path')
-    parser.add_argument('--images_path', metavar='path', required=True,
-                        help='the path to images folder')
+    parser.add_argument('--image_path', metavar='path', required=True,
+                        help='the path to image')
     parser.add_argument('--model_path', metavar='path', required=True,
                         help='path to model')
     args = parser.parse_args()

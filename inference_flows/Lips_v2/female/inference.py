@@ -338,59 +338,39 @@ BS_VALUES_M = [("Up_Lip_Thick", 0), ("Low_Lip_Thick", 0), ("L_Lip_Con_Out", 0), 
 BS_VALUES_F = [("Up_Lip_Thick", 0), ("Low_Lip_Thick", 0), ("L_Lip_Con_Out", 0), ("R_Lip_Con_Out", 0)]
 
 
-def run_inference(images_path, csv_file=None, gender='f'):
-    tmp_path = "/tmp/tmp-dir-infer"
+def run_inference(image_path, gender='f'):
+    tmp_path = "/tmp/lipsV2"
     shutil.rmtree(tmp_path, ignore_errors=True)
+
+    if not (image_path.endswith("png") or image_path.endswith("jpg") or image_path.endswith("jpeg")):
+        return
+
     os.mkdir(tmp_path)
+    tmp_dest = os.path.join(tmp_path, image_path.split("/")[-1])
+    curr_pred = None
+    if aligned_image_obj.get_aligned_image(image_path, tmp_dest):
+        input_features = facial_landmarks_obj.get_relevant_features(tmp_dest)
 
-    if os.path.isfile(images_path):
-        img_paths = [images_path, ]
-    else:
-        img_paths = [os.path.join(images_path, img_path) for img_path in os.listdir(images_path)]
-
-    if csv_file is not None:
-        os.makedirs(os.path.join(csv_file.split("/")[-1]), exist_ok=True)
-        out_file = open(csv_file, "w")
-        csvwriter = csv.writer(out_file)
-
-        if gender == 'm':
-            csvwriter.writerow(["", "image_name"] + [i for i,j in BS_VALUES_M])
-        elif gender == 'f':
-            csvwriter.writerow(["", "image_name"] + [i for i,j in BS_VALUES_F])
-
-    for (i, src_) in enumerate(img_paths):
-        if not (src_.endswith("png") or src_.endswith("jpg") or src_.endswith("jpeg")):
-            continue
-        tmp_dest = os.path.join(tmp_path, src_.split("/")[-1])
-
-        curr_pred = None
-        if aligned_image_obj.get_aligned_image(src_, tmp_dest):
-            input_features = facial_landmarks_obj.get_relevant_features(tmp_dest)
-
-            if input_features:
-                curr_pred = lip_model.predict([input_features, ])[0]
-                curr_pred = [round(i * 100, 2) for i in curr_pred]
-
-        if csv_file is not None:
-            if gender == 'm':
-                if curr_pred is None:
-                    curr_pred = [0] * len(BS_VALUES_M)
-                else:
-                    curr_pred = curr_pred + [curr_pred[-1]]
-
-                csvwriter.writerow([i, src_.split("/")[-1]] + curr_pred)
-            if gender == 'f':
-                if curr_pred is None:
-                    curr_pred = [0] * len(BS_VALUES_F)
-                else:
-                    curr_pred = curr_pred + [curr_pred[-1]]
-
-                csvwriter.writerow([i, src_.split("/")[-1]] + curr_pred)
-
-        print("Done", src_)
-
-    if csv_file:
-        out_file.close()
+    if input_features:
+        curr_pred = lip_model.predict([input_features, ])[0]
+        curr_pred = [round(i * 100, 2) for i in curr_pred]
 
     shutil.rmtree(tmp_path, ignore_errors=True)
+    
+    if gender == 'm':
+        if curr_pred is None:
+            return dict(BS_VALUES_M)
+        else:
+            curr_pred = curr_pred + [curr_pred[-1]]
+            return {BS_VALUES_M[i][0]:curr_pred[i] for i in len(curr_pred)}
+
+    elif gender == 'f':
+        if curr_pred is None:
+            return dict(BS_VALUES_F)
+        else:
+            curr_pred = curr_pred + [curr_pred[-1]]
+            return {BS_VALUES_F[i][0]:curr_pred[i] for i in len(curr_pred)}
+
+
+    
 

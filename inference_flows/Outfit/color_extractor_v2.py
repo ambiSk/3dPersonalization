@@ -522,45 +522,28 @@ class ColorExtractor(object):
             logging.exception("Cannot calculate distance lip color, sending default.")
             return None
 
-def run_inference(images_path, csv_file=None):
+def run_inference(image_path):
     background_segmentation_obj = BackgroundSegmentation()
     color_extractor_obj = ColorExtractor()
 
-    if os.path.isfile(images_path):
-        img_paths = [images_path, ]
-    else:
-        img_paths = [os.path.join(images_path, img_path) for img_path in os.listdir(images_path)]
+    if not (image_path.endswith("png") or image_path.endswith("jpg") or image_path.endswith("jpeg")):
+        return
 
-    if csv_file is not None:
-        os.makedirs(os.path.join(csv_file.split("/")[-1]), exist_ok=True)
-        out_file = open(csv_file, "w")
-        csvwriter = csv.writer(out_file)
-        csvwriter.writerow(["", "image_name", "lip_color"])
+    image = Image.open(image_path)
+    resized_image, resized_image_size = background_segmentation_obj.preprocess_image(image)
+    segmentation_map = background_segmentation_obj.run_inference(resized_image)
+    bg_segmented_image = background_segmentation_obj.overlay_segmentation_on_image(resized_image, segmentation_map)
 
-    for (i, src_) in enumerate(img_paths):
-        if not (src_.endswith("png") or src_.endswith("jpg") or src_.endswith("jpeg")):
-            continue
+    resized_image = np.asarray(resized_image)
+    face_points = color_extractor_obj.find_face_points(resized_image)
 
-        image = Image.open(src_)
-        resized_image, resized_image_size = background_segmentation_obj.preprocess_image(image)
-        segmentation_map = background_segmentation_obj.run_inference(resized_image)
-        bg_segmented_image = background_segmentation_obj.overlay_segmentation_on_image(resized_image, segmentation_map)
+    lip_color = ColorExtractor().get_colors(bg_segmented_image, face_points, 'female').get("LipColor", None)
+    
+    if not lip_color:
+        lip_color = "default"
 
-        resized_image = np.asarray(resized_image)
-        face_points = color_extractor_obj.find_face_points(resized_image)
+    return {"lip_color":lip_color}
 
-        lip_color = ColorExtractor().get_colors(bg_segmented_image, face_points, 'female').get("LipColor", None)
-
-        if not lip_color:
-            lip_color = "default"
-
-        if csv_file is not None:
-            csvwriter.writerow([i, src_.split("/")[-1], lip_color])
-
-        print("Done", src_)
-
-    if csv_file:
-        out_file.close()
 
 
 if __name__ == "__main__":

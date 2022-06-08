@@ -54,34 +54,36 @@ def get_data(request_id, gender):
     response = response.json()["data"]
 
     if gender == 'male':
-        return [response.get("MaleEyes_Open_R", dict()).get("value", "").split("_")[0],
-                response.get("MaleNose", dict()).get("value", ""),
-                response.get("MaleLips", dict()).get("value", ""),
-                response.get("MaleEyebrows", dict()).get("value", ""),
-                response.get("MaleHairFront", dict()).get("value", ""),
-                response.get("MaleHairBack", dict()).get("value", ""),
-                response.get("MaleFaceShape", dict()).get("value", ""),
-                response.get("SkinColor", dict()),
-                response.get("MaleEyewear", dict()).get("value", ""),
-                response.get("MaleBasebeard", dict()).get("value", ""),
-                response.get("MaleGoatee", dict()).get("value", ""),
-                response.get("MaleMustache", dict()).get("value", ""),
-                ]
+        return dict(gender = gender,
+                Eyes=response.get("MaleEyes_Open_R", dict()).get("value", "").split("_")[0],
+                Nose=response.get("MaleNose", dict()).get("value", ""),
+                Lips=response.get("MaleLips", dict()).get("value", ""),
+                Eyebrows=response.get("MaleEyebrows", dict()).get("value", ""),
+                HairFront=response.get("MaleHairFront", dict()).get("value", ""),
+                HairBack=response.get("MaleHairBack", dict()).get("value", ""),
+                FaceShape=response.get("MaleFaceShape", dict()).get("value", ""),
+                SkinColor=response.get("SkinColor", dict()),
+                Eyewear=response.get("MaleEyewear", dict()).get("value", ""),
+                Beard=response.get("MaleBasebeard", dict()).get("value", ""),
+                Goatee=response.get("MaleGoatee", dict()).get("value", ""),
+                Moustache=response.get("MaleMustache", dict()).get("value", ""))
+                
 
     else:
-        return [response.get("FemaleEyes_Open_R", dict()).get("value", "").split("_")[0],
-                response.get("FemaleNose", dict()).get("value", ""),
-                response.get("FemaleLips", dict()).get("value", ""),
-                response.get("FemaleEyebrows", dict()).get("value", ""),
-                response.get("FemaleHairFront", dict()).get("value", ""),
-                response.get("FemaleHairBack", dict()).get("value", ""),
-                response.get("FemaleFaceShape", dict()).get("value", ""),
-                response.get("SkinColor", dict()),
-                response.get("FemaleEyewear", dict()).get("value", ""),
-                response.get("FemaleBasebeard", dict()).get("value", ""),
-                response.get("FemaleGoatee", dict()).get("value", ""),
-                response.get("FemaleMustache", dict()).get("value", ""),
-                ]
+        return dict(gender=gender,
+                    Eyes=response.get("FemaleEyes_Open_R", dict()).get("value", "").split("_")[0],
+                    Nose=response.get("FemaleNose", dict()).get("value", ""),
+                    Lips=response.get("FemaleLips", dict()).get("value", ""),
+                    Eyebrows=response.get("FemaleEyebrows", dict()).get("value", ""),
+                    HairFront=response.get("FemaleHairFront", dict()).get("value", ""),
+                    HairBack=response.get("FemaleHairBack", dict()).get("value", ""),
+                    FaceShape=response.get("FemaleFaceShape", dict()).get("value", ""),
+                    SkinColor=response.get("SkinColor", dict()),
+                    Eyewear=response.get("FemaleEyewear", dict()).get("value", ""),
+                    Beard=response.get("FemaleBasebeard", dict()).get("value", ""),
+                    Goatee=response.get("FemaleGoatee", dict()).get("value", ""),
+                    Moustache=response.get("FemaleMustache", dict()).get("value", ""))
+                
 
 
 ROWS_MALE = ["","image_name","gender","Eyes","Nose","Lips","Eyebrows","HairFront","HairBack",
@@ -90,36 +92,12 @@ ROWS_FEMALE = ["","image_name","gender","Eyes","Nose","Lips","Eyebrows","HairFro
              "FaceShape","SkinColor","Eyewear", "Beard", "Goatee", "Moustache"]
 
 
-def run_inference(images_path, csv_file=None, gender='male'):
-    if os.path.isfile(images_path):
-        img_paths = [images_path, ]
-    else:
-        img_paths = [os.path.join(images_path, img_path) for img_path in os.listdir(images_path)]
+def run_inference(image_path, gender='male'):
+    if not (image_path.endswith("png") or image_path.endswith("jpg") or image_path.endswith("jpeg")):
+        return
+    request_id = send_request_curl(src_, gender)
+    time.sleep(5)
 
-    if csv_file is not None:
-        os.makedirs(os.path.dirname(csv_file), exist_ok=True)
-        out_file = open(csv_file, "w")
-        csvwriter = csv.writer(out_file)
+    request_data = get_data(request_id, gender)
 
-        if gender == 'male':
-            csvwriter.writerow(ROWS_MALE)
-        elif gender == 'female':
-            csvwriter.writerow(ROWS_FEMALE)
-
-    for (i, src_) in enumerate(img_paths):
-        if not (src_.endswith("png") or src_.endswith("jpg") or src_.endswith("jpeg")):
-            continue
-
-        request_id = send_request_curl(src_, gender)
-        time.sleep(5)
-
-        request_data = get_data(request_id, gender)
-
-        if csv_file is not None:
-            csvwriter.writerow([i, src_.split("/")[-1], gender] + request_data)
-
-    if csv_file:
-        out_file.close()
-
-# if __name__ == "__main__":
-#     run_inference('/Users/pankajdahiya/Downloads/Selfies', os.path.join(os.path.dirname(__file__), "component_values_maleV2.csv"), 'male')
+    return request_data

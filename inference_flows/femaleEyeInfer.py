@@ -28,7 +28,7 @@ from mtl.multitask import MultitaskMetrics
 # json_dir = "../Male_output_json/"
 MODEL_PATH = "Hikemoji3D/Assets/PythonScripts/Trained_models/Eyes/Female/"
 TASK_OUTPUT_MAPPER = 'Hikemoji3D/Assets/PythonScripts/Trained_models/Eyes/Female/task_output_mapper.pkl'
-FACE_LANDMARKS_FILE = "../Trained_models/shape_predictor_68_face_landmarks.dat"
+FACE_LANDMARKS_FILE = "/home/sharathchandra/shape_predictor_68_face_landmarks.dat"
 
 def ModelInfer(image_dir, MODEL_PATH, TASK_OUTPUT_MAPPER):
 	learn = load_learner(MODEL_PATH, test=ImageList.from_df(path=image_dir, df=pd.DataFrame(os.listdir(image_dir), columns=["ImagePath"])))

@@ -4,7 +4,6 @@ import matplotlib.image as mpimg
 from matplotlib import pyplot as plt
 #%matplotlib inline
 
-import csv
 import shutil
 
 from fastai.vision.all import *
@@ -91,48 +90,23 @@ if not os.path.exists(model_path):
 learn = load_learner(model_path)
 
 
-def run_inference(images_path, csv_file=None, gender='m'):
-    tmp_path = "/tmp/tmp-dir-infer"
+def run_inference(image_path, gender='m'):
+    tmp_path = "/tmp/ccv3"
     shutil.rmtree(tmp_path, ignore_errors=True)
+    if not (image_path.endswith("png") or image_path.endswith("jpg") or image_path.endswith("jpeg")):
+        return
+
     os.mkdir(tmp_path)
-
-    if os.path.isfile(images_path):
-        img_paths = [images_path, ]
-    else:
-        img_paths = [os.path.join(images_path, img_path) for img_path in os.listdir(images_path)]
-
-    if csv_file is not None:
-        os.makedirs(os.path.join(csv_file.split("/")[-1]), exist_ok=True)
-        out_file = open(csv_file, "w")
-        csvwriter = csv.writer(out_file)
-
-        if gender == 'm':
-            csvwriter.writerow(["", "image_name"] + [i for i,j in BS_VALUES_M])
-        elif gender == 'f':
-            csvwriter.writerow(["", "image_name"] + [i for i,j in BS_VALUES_F])
-
-    for (i, src_) in enumerate(img_paths):
-        if not (src_.endswith("png") or src_.endswith("jpg") or src_.endswith("jpeg")):
-            continue
-        tmp_dest = os.path.join(tmp_path, src_.split("/")[-1])
-
-        crop_image_obj.get_cropped_image(src_, tmp_dest)
-        pred = learn.predict(tmp_dest)[1].numpy()[0]
-
-        pred = min(max(0, pred), 2)
-        pred = round(pred * 2) / 4
-
-        if csv_file is not None:
-            if gender == 'm':
-                curr_pred = [j*pred for _,j in BS_VALUES_M]
-                curr_pred[UPPER_CHEEK_FR_BK_INDEX] -= 100
-                csvwriter.writerow([i, src_.split("/")[-1]] + curr_pred)
-            if gender == 'f':
-                csvwriter.writerow([i, src_.split("/")[-1]] + [j*pred for _,j in BS_VALUES_F])
-
-        print("Done", src_)
-
-    if csv_file:
-        out_file.close()
-
+    tmp_dest = os.path.join(tmp_path, image_path.split("/")[-1])
+    crop_image_obj.get_cropped_image(image_path, tmp_dest)
+    pred = learn.predict(tmp_dest)[1].numpy()[0]
+    pred = min(max(0, pred), 2)
+    pred = round(pred * 2) / 4
     shutil.rmtree(tmp_path, ignore_errors=True)
+    if gender=='m':
+        curr_pred = [j*pred for _,j in BS_VALUES_M]
+        curr_pred[UPPER_CHEEK_FR_BK_INDEX] -= 100
+        return {BS_VALUES_M[i][0]:curr_pred[i] for i in range(len(curr_pred))}
+        
+    return {BS_VALUES_F[i][0]:BS_VALUES_F[i][1]*pred}
+
