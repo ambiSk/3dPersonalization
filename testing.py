@@ -91,15 +91,7 @@ def ml_hikemoji_get_call(ml_request_id, params_load=None):
         return None
 
 
-arguments = argparse.ArgumentParser()
-arguments.add_argument('--input_dir', type=str, default='./SelfiesUXR/')
-arguments.add_argument('--gender', type=str, default='male')
-arguments.add_argument('--version', type=str, default='v6-999999999')
-arguments.add_argument('--uid', type=str, default='ml_infer_script')
-arguments.add_argument('--msisdn', type=str, default='ml_infer_script')
-arguments.add_argument('--inference_2d', type=str, default="no")
 
-args = arguments.parse_args()
 
 def main(input_dir, gender):
     
@@ -155,4 +147,13 @@ def main(input_dir, gender):
     print("DONE!")
 
 if __name__== '__main__':
+    arguments = argparse.ArgumentParser()
+    arguments.add_argument('--input_dir', type=str, default='./SelfiesUXR/')
+    arguments.add_argument('--gender', type=str, default='male')
+    arguments.add_argument('--version', type=str, default='v6-999999999')
+    arguments.add_argument('--uid', type=str, default='ml_infer_script')
+    arguments.add_argument('--msisdn', type=str, default='ml_infer_script')
+    arguments.add_argument('--inference_2d', type=str, default="no")
+
+    args = arguments.parse_args()
     main(args.input_dir, args.gender)

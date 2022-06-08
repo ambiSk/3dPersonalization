@@ -39,7 +39,6 @@ from inference_flows import Hikemoji2D
 # gender = args.gender
 # inference_2d = args.inference_2d
 # input_image = args.input_image
-inference_results_path = "./input_files/" + gender
 
 
 def read_data(path):
@@ -143,10 +142,12 @@ if __name__ == "__main__":
     arguments.add_argument('--gender', type=str, default='male')
     arguments.add_argument('--input_image', type=str)
     arguments.add_argument('--inference_2d', type=str, default="no")
+    
     args = arguments.parse_args()
     gender = args.gender
     inference_2d = args.inference_2d
     input_image = args.input_image
+    inference_results_path = "./input_files/" + gender
 
     #get_2d_output()
     _, out3d = run_inferences(input_image, inference_2d, gender)
